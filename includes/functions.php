@@ -98,6 +98,8 @@ function update_qty_cart($produk_id, $quantity)
             unset($_SESSION['cart'][$produk_id]);
         } else {
             $_SESSION['cart'][$produk_id]['quantity'] = $quantity;
+            $harga = $_SESSION['cart'][$produk_id]['harga'];
+            $_SESSION['cart'][$produk_id]['subtotal'] = $harga * $quantity;
         }
     }
 }
