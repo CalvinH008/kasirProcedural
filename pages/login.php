@@ -23,7 +23,7 @@ if (isset($_POST) && is_post()) {
     if (empty($errors)) {
         $stmt = mysqli_prepare($conn, "SELECT * FROM users WHERE username = ? AND is_active = 1");
         mysqli_stmt_bind_param($stmt, 's', $username);
-        mysqli_execute($stmt);
+        mysqli_stmt_execute($stmt);
         $result = mysqli_stmt_get_result($stmt);
         $user = mysqli_fetch_assoc($result);
 
@@ -34,7 +34,7 @@ if (isset($_POST) && is_post()) {
                 if ($user['role'] == 'admin') {
                     redirect('admin/dashboard.php');
                 } elseif($user['role'] == 'kasir') {
-                    redirect('kasir/dashboard.php');
+                    redirect('pages/transaction.php');
                 }
             } else {
                 $errors[] = 'password anda salah';

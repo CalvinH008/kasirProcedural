@@ -104,54 +104,94 @@ function update_qty_cart($produk_id, $quantity)
     }
 }
 
-function getCurrentUser($conn){
-    if(!isset($_SESSION['user_id'])){
+function getCurrentUser($conn)
+{
+    if (!isset($_SESSION['user_id'])) {
         return null;
     }
 
     $id = $_SESSION['user_id'];
-    $query = "SELECT username FROM users WHERE id = $id";
-    $result = mysqli_query($conn, $query);
+    $stmt = mysqli_prepare($conn, "SELECT username FROM users WHERE id = ?");
+    mysqli_stmt_bind_param($stmt, "i", $id);
+    mysqli_stmt_execute($stmt);
+    $result = mysqli_stmt_get_result($stmt); 
     $row = mysqli_fetch_assoc($result);
 
     return $row['username'];
 }
 
-function checkout($conn, $bayar){
-    if(!isset($_SESSION['cart']) || empty($_SESSION['cart'])){
+function checkout($conn, $bayar, $no)
+{
+    if (!isset($_SESSION['cart']) || empty($_SESSION['cart'])) {
         return 'cart kosong';
     }
 
     $cart = $_SESSION['cart'];
 
     $total = 0;
-    foreach($cart as $item){
+    foreach ($cart as $item) {
         $total += $item['harga'] * $item['quantity'];
     }
 
-    if($bayar < 0){
-        return "uang kurang";
+    if ($bayar < $total) {
+        return 'uang anda kurang';
     }
 
     $kembalian = $bayar - $total;
 
     $user_id = $_SESSION['user_id'];
 
-    $kode = "TRX" . time();
+    $kode = generate_kode_transaksi($no);
 
-    mysqli_query($conn, "INSERT INTO transaksi (user_id, kode_transaksi, total, bayar, kembalian, created_at) VALUES ($user_id, $kode, $total, $bayar, $kembalian, NOW())");
+    mysqli_begin_transaction($conn);
+    try {
+        $stmt1 = mysqli_prepare($conn, "INSERT INTO transaksi(user_id, kode_transaksi, total, bayar, kembalian, created_at) VALUES (?, ?, ?, ?, ?, NOW())");
+        mysqli_stmt_bind_param($stmt1, "isiii", $user_id, $kode, $total, $bayar, $kembalian);
+        $result = mysqli_stmt_execute($stmt1);
 
-    $transaksi_id = mysqli_insert_id($conn);
+        if (!$result) {
+            throw new Exception("gagal insert transaksi");
+        }
 
-    foreach($cart as $item){
-        $produk_id = $item['id'];
-        $quantity = $item['quantity'];
-        $harga = $item['harga'];
-        $subtotal = $quantity * $harga;
+        $transaksi_id = mysqli_insert_id($conn);
+        foreach ($cart as $produk_id => $item) {
+            $quantity = $item['quantity'];
+            $harga = $item['harga'];
+            $subtotal = $harga * $quantity;
+            $stmt2 = mysqli_prepare($conn, "INSERT INTO detail_transaksi(transaksi_id, produk_id, quantity, harga_satuan, subtotal) VALUES (?, ?, ?, ?, ?)");
+            mysqli_stmt_bind_param($stmt2, "iiiii", $transaksi_id, $produk_id, $quantity, $harga, $subtotal);
+            $result = mysqli_stmt_execute($stmt2);
+            if (!$result) {
+                throw new Exception("gagal insert detail_transaksi");
+            }
+
+            $stmt3 = mysqli_prepare($conn, "UPDATE produk SET stok = stok - ? WHERE id = ?");
+            mysqli_stmt_bind_param($stmt3, "ii", $quantity, $produk_id);
+            $result = mysqli_stmt_execute($stmt3);
+            if (!$result) {
+                throw new Exception("gagal update stok");
+            }
+        }
+
+        mysqli_commit($conn);
+        clear_cart();
+        set_flash('kembalian', $kembalian);
+        redirect("pages/transaction.php");
+    } catch (\Exception $e) {
+        mysqli_rollback($conn);
+        echo "Transaksi gagal: " . $e->getMessage();
     }
+}
 
-    mysqli_query($conn, "INSERT INTO detail_transaksi(transaksi_id, produk_id, quantity, harga_satuan, subtotal) VALUES ($transaksi_id, $produk_id, $quantity, $harga, $subtotal)");
+function set_flash($key, $message){
+    $_SESSION[$key] = $message;
+}
 
-    unset($_SESSION['cart']);
-    return "Checkout berhasil | Kembalian: " . $kembalian;
+function get_flash($key){
+    $kembalian = null;
+    if(isset($_SESSION[$key])){
+        $kembalian = $_SESSION[$key];
+        unset($_SESSION[$key]);
+    }
+    return $kembalian;
 }

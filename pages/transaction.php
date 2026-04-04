@@ -4,6 +4,14 @@ require_once(__DIR__ . '/../includes/auth.php');
 require_once(__DIR__ . '/../includes/functions.php');
 require_login();
 
+if(isset($_POST['checkout'])){
+    $bayar = $_POST['bayar'];
+    $result = mysqli_query($conn, "SELECT * FROM transaksi");
+    $no = mysqli_num_rows($result);
+    checkout($conn, $bayar, $no);
+}
+
+
 $cart = get_cart();
 $produk = mysqli_query($conn, "SELECT * FROM produk WHERE is_active = 1");
 
@@ -30,6 +38,7 @@ if (isset($_POST['remove'])) {
     remove_from_cart($id);
     redirect('pages/transaction.php');
 }
+
 ?>
 
 <!DOCTYPE html>
@@ -129,6 +138,12 @@ if (isset($_POST['remove'])) {
         <div class="grid">
 
             <div>
+                <?php 
+                $kembalian = get_flash('kembalian');
+                if($kembalian){
+                    echo "Kembalian: " . format_rupiah($kembalian);
+                }
+                ?>
                 <h2>Daftar Produk</h2>
 
                 <?php while ($row = mysqli_fetch_assoc($produk)) { ?>
@@ -182,6 +197,10 @@ if (isset($_POST['remove'])) {
                     Total: Rp <?= number_format($total) ?>
                 </div>
 
+                <form action="" method="POST">
+                    <input type="number" name="bayar">
+                    <button type="submit" name="checkout">Checkout</button>
+                </form>
             </div>
 
         </div>
