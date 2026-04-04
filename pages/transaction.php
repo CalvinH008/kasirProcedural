@@ -4,7 +4,7 @@ require_once(__DIR__ . '/../includes/auth.php');
 require_once(__DIR__ . '/../includes/functions.php');
 require_login();
 
-if(isset($_POST['checkout'])){
+if (isset($_POST['checkout'])) {
     $bayar = $_POST['bayar'];
     $result = mysqli_query($conn, "SELECT * FROM transaksi");
     $no = mysqli_num_rows($result);
@@ -51,39 +51,59 @@ if (isset($_POST['remove'])) {
 
     <style>
         body {
-            font-family: Arial, sans-serif;
-            background: #f5f6fa;
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background: #f1f3f6;
             margin: 0;
         }
 
         .container {
-            width: 90%;
+            width: 95%;
+            max-width: 1200px;
             margin: 20px auto;
         }
 
         .grid {
             display: grid;
             grid-template-columns: 2fr 1fr;
-            gap: 20px;
+            gap: 25px;
         }
 
+        /* Produk */
         .produk-card {
-            background: white;
-            padding: 15px;
-            margin-bottom: 10px;
-            border-radius: 10px;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            background: #fff;
+            padding: 16px;
+            margin-bottom: 12px;
+            border-radius: 12px;
+            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.05);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
 
-        .produk-card p {
-            margin: 5px 0;
+        .produk-info {
+            display: flex;
+            flex-direction: column;
         }
 
+        .produk-info b {
+            font-size: 16px;
+        }
+
+        .produk-info span {
+            color: #555;
+            font-size: 14px;
+        }
+
+        /* Cart */
         .cart {
-            background: white;
-            padding: 15px;
-            border-radius: 10px;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            background: #fff;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.05);
+        }
+
+        .cart h2 {
+            margin-top: 0;
         }
 
         .cart-item {
@@ -91,16 +111,25 @@ if (isset($_POST['remove'])) {
             padding: 10px 0;
         }
 
-        input[type="number"] {
-            width: 60px;
-            padding: 5px;
+        .cart-item:last-child {
+            border-bottom: none;
         }
 
+        /* Input */
+        input[type="number"] {
+            width: 60px;
+            padding: 6px;
+            border-radius: 6px;
+            border: 1px solid #ccc;
+        }
+
+        /* Button */
         button {
             border: none;
-            padding: 6px 10px;
-            border-radius: 6px;
+            padding: 7px 12px;
+            border-radius: 8px;
             cursor: pointer;
+            font-size: 13px;
         }
 
         .add {
@@ -118,14 +147,31 @@ if (isset($_POST['remove'])) {
             color: white;
         }
 
+        .checkout {
+            background: #2c3e50;
+            color: white;
+            width: 100%;
+            margin-top: 10px;
+            padding: 10px;
+        }
+
         button:hover {
             opacity: 0.9;
         }
 
+        /* Total */
         .total {
             margin-top: 15px;
             font-weight: bold;
             font-size: 18px;
+        }
+
+        /* Kembalian */
+        .kembalian {
+            background: #dff9fb;
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 10px;
         }
     </style>
 </head>
@@ -138,18 +184,20 @@ if (isset($_POST['remove'])) {
         <div class="grid">
 
             <div>
-                <?php 
+                <?php
                 $kembalian = get_flash('kembalian');
-                if($kembalian){
-                    echo "Kembalian: " . format_rupiah($kembalian);
+                if ($kembalian) {
+                    echo "<div class='kembalian'>Kembalian: " . format_rupiah($kembalian) . "</div>";
                 }
                 ?>
                 <h2>Daftar Produk</h2>
 
                 <?php while ($row = mysqli_fetch_assoc($produk)) { ?>
                     <div class="produk-card">
-                        <p><b><?= $row['nama'] ?></b></p>
-                        <p>Rp <?= number_format($row['harga']) ?></p>
+                        <div class="produk-info">
+                            <b><?= $row['nama'] ?></b>
+                            <span>Rp <?= number_format($row['harga']) ?></span>
+                        </div>
 
                         <form method="POST">
                             <input type="hidden" name="id" value="<?= $row['id'] ?>">
@@ -199,7 +247,7 @@ if (isset($_POST['remove'])) {
 
                 <form action="" method="POST">
                     <input type="number" name="bayar">
-                    <button type="submit" name="checkout">Checkout</button>
+                    <button type="submit" name="checkout" class="checkout">Checkout</button>
                 </form>
             </div>
 
